@@ -1,0 +1,20 @@
+type MySkill @model {
+  id: ID!
+  skillId: ID!
+  level: String
+  skill: Skill @connection(fields: ["skillId"])
+}
+
+type Skill @model {
+  id: ID!
+  name: String!
+  categoryId: ID!
+  skillCategory: SkillCategory @connection(fields: ["categoryId"])
+  personSkill: MySkill @connection(fields: ["id"])
+}
+
+type SkillCategory @model {
+  id: ID!
+  name: String
+  skills: [Skill] @connection(fields: ["id"])
+}

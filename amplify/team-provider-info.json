@@ -1,0 +1,38 @@
+{
+    "dev": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-skillmap-dev-142222-authRole",
+            "UnauthRoleArn": "arn:aws:iam::636965319062:role/amplify-skillmap-dev-142222-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::636965319062:role/amplify-skillmap-dev-142222-authRole",
+            "Region": "ap-northeast-1",
+            "DeploymentBucketName": "amplify-skillmap-dev-142222-deployment",
+            "UnauthRoleName": "amplify-skillmap-dev-142222-unauthRole",
+            "StackName": "amplify-skillmap-dev-142222",
+            "StackId": "arn:aws:cloudformation:ap-northeast-1:636965319062:stack/amplify-skillmap-dev-142222/05f85b20-bc50-11eb-88ac-06abb5a25337",
+            "AmplifyAppId": "djxqwvixo0amg"
+        },
+        "categories": {
+            "auth": {
+                "skillmapee8178a8": {
+                    "userPoolId": "ap-northeast-1_3Lr9m3Qkd",
+                    "userPoolName": "skillmap-dev",
+                    "webClientId": "2uhokp5u4cn80vd87m7aa3tur9",
+                    "nativeClientId": "2uhokp5u4cn80vd87m7aa3tur9",
+                    "identityPoolId": "ap-northeast-1:ccb6bc11-b318-4c22-8571-0f8bf7414f87",
+                    "identityPoolName": "skillmap_dev",
+                    "allowUnauthenticatedIdentities": false,
+                    "authRoleArn": "arn:aws:iam::636965319062:role/Cognito_skillmap_devAuth_Role",
+                    "authRoleName": "Cognito_skillmap_devAuth_Role",
+                    "unauthRoleArn": "arn:aws:iam::636965319062:role/Cognito_skillmap_devUnauth_Role",
+                    "unauthRoleName": "Cognito_skillmap_devUnauth_Role"
+                }
+            },
+            "hosting": {
+                "amplifyhosting": {
+                    "appId": "djxqwvixo0amg",
+                    "type": "manual"
+                }
+            }
+        }
+    }
+}
