@@ -9,7 +9,8 @@
             "UnauthRoleName": "amplify-skillmap-dev-142222-unauthRole",
             "StackName": "amplify-skillmap-dev-142222",
             "StackId": "arn:aws:cloudformation:ap-northeast-1:636965319062:stack/amplify-skillmap-dev-142222/05f85b20-bc50-11eb-88ac-06abb5a25337",
-            "AmplifyAppId": "djxqwvixo0amg"
+            "AmplifyAppId": "djxqwvixo0amg",
+            "AuthTriggerTemplateURL": ""
         },
         "categories": {
             "auth": {
