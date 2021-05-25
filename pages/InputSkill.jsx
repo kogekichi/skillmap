@@ -22,6 +22,7 @@ import {
 } from "@material-ui/core";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import AddCircleIcon from "@material-ui/icons/AddCircle";
+import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
 import SaveIcon from '@material-ui/icons/Save';
 import MuiAlert from '@material-ui/lab/Alert';
 import React, { useEffect, useState } from "react";
@@ -215,10 +216,17 @@ const InputSkill = () => {
 
     }
 
+    // 削除処理
+    const handleClickDelete = async (delMySkill) => {
+
+    }
+
+    // エラーメッセージ非表示
     const handleErrorClose = () => {
         setErrorMessage("");
     }
 
+    // 情報メッセージ非表示
     const handleInfoClose = () => {
         setInfoMessage("");
     }
@@ -289,6 +297,7 @@ const InputSkill = () => {
                                         <TableCell colSpan={5}>
                                             Level
                                         </TableCell>
+                                        <TableCell rowSpan={2}></TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell align="center">1</TableCell>
@@ -343,6 +352,11 @@ const InputSkill = () => {
                                                     name={`skil_${row.id}`}
                                                     onChange={(e) => handleChangeLevel(e, row)}
                                                 />
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <IconButton color="secondary" onClick={handleClickAddSkill}>
+                                                    <RemoveCircleOutlineIcon fontSize="large" />
+                                                </IconButton>
                                             </TableCell>
                                         </TableRow>
                                     ))}
