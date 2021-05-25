@@ -1,6 +1,6 @@
 import React from 'react'
 
-const ConfirmDialog = () => {
+const ConfirmDialog = ({children, onClickYes = ()=>{}, onClickNo = ()=>{}}) => {
     const [open, setOpen] = React.useState(false);
 
     const handleClickOpen = () => {
@@ -10,11 +10,11 @@ const ConfirmDialog = () => {
     const handleClose = () => {
       setOpen(false);
     };
-    
+
     return (
         <div>
         <Button variant="outlined" color="primary" onClick={handleClickOpen}>
-          Open alert dialog
+          確認
         </Button>
         <Dialog
           open={open}
@@ -30,11 +30,11 @@ const ConfirmDialog = () => {
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleClose} color="primary">
-              Disagree
+            <Button onClick={onClickNo} color="primary">
+              いいえ
             </Button>
-            <Button onClick={handleClose} color="primary" autoFocus>
-              Agree
+            <Button onClick={onClickYes} color="primary" autoFocus>
+              はい
             </Button>
           </DialogActions>
         </Dialog>
