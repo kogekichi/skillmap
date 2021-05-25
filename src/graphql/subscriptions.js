@@ -14,6 +14,7 @@ export const onCreateMySkill = /* GraphQL */ `
         createdAt
         updatedAt
       }
+      email
       createdAt
       updatedAt
     }
@@ -32,6 +33,7 @@ export const onUpdateMySkill = /* GraphQL */ `
         createdAt
         updatedAt
       }
+      email
       createdAt
       updatedAt
     }
@@ -50,6 +52,7 @@ export const onDeleteMySkill = /* GraphQL */ `
         createdAt
         updatedAt
       }
+      email
       createdAt
       updatedAt
     }
@@ -71,6 +74,7 @@ export const onCreateSkill = /* GraphQL */ `
         id
         skillId
         level
+        email
         createdAt
         updatedAt
       }
@@ -95,6 +99,7 @@ export const onUpdateSkill = /* GraphQL */ `
         id
         skillId
         level
+        email
         createdAt
         updatedAt
       }
@@ -119,6 +124,7 @@ export const onDeleteSkill = /* GraphQL */ `
         id
         skillId
         level
+        email
         createdAt
         updatedAt
       }

@@ -14,6 +14,7 @@ export const getMySkill = /* GraphQL */ `
         createdAt
         updatedAt
       }
+      email
       createdAt
       updatedAt
     }
@@ -30,6 +31,7 @@ export const listMySkills = /* GraphQL */ `
         id
         skillId
         level
+        email
         createdAt
         updatedAt
       }
@@ -53,6 +55,7 @@ export const getSkill = /* GraphQL */ `
         id
         skillId
         level
+        email
         createdAt
         updatedAt
       }
