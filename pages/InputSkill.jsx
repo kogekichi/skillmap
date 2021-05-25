@@ -65,7 +65,7 @@ const InputSkill = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [infoMessage, setInfoMessage] = useState("");
 
-    // 初期検索
+    // 保有スキル取得
     const getMySkills = async (curUser, skillItems) => {
         const resMySkill = await API.graphql({
             query: queries.listMySkills,
@@ -82,9 +82,13 @@ const InputSkill = () => {
             return mskill;
         });
 
-        setMySkills([...margeMySkills]);
-        setInitMySkill(margeMySkills.map((skill) => ({...skill})));
+        const mySkillsSorted = margeMySkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
+
+        setMySkills([...mySkillsSorted]);
+        setInitMySkill(mySkillsSorted.map((skill) => ({...skill})));
     }
+
+    // 初期検索
     useEffect(async () => {
 
         // ユーザ情報取得
@@ -96,13 +100,14 @@ const InputSkill = () => {
         const resCate = await API.graphql({
             query: queries.listSkillCategorys,
         });
-        setCategories(resCate.data.listSkillCategorys.items);
+        const cate = resCate.data.listSkillCategorys.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
+        setCategories(cate);
 
         // スキル一覧取得
         const resSkillｓ = await API.graphql({
             query: queries.listSkills,
         });
-        const skillItems = resSkillｓ.data.listSkills.items;
+        const skillItems = resSkillｓ.data.listSkills.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
         setSkills(skillItems);
 
         // 自分のスキル取得
