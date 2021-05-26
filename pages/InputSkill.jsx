@@ -190,36 +190,49 @@ const InputSkill = () => {
         try {
             const targetMySkills = mySkills.filter(predicate);
             if (targetMySkills.length > 0) {
-                mySkills.filter(predicate).forEach(async (skill) =>{
+
+                let resultSkills = mySkills;
+                
+                targetMySkills.forEach(async (skill) =>{
                     if (skill.id) {
-                        await API.graphql({
-                            query: mutations.updateMySkill,
-                            variables:{
-                                input : {
-                                    id: skill.id,
-                                    skillId: skill.skillId,
-                                    level: skill.level,
-                                    email: user.attributes.email,
-                                    }
-                                }
-                        });
+                        const result = await API.graphql({
+                                        query: mutations.updateMySkill,
+                                        variables:{
+                                            input : {
+                                                id: skill.id,
+                                                skillId: skill.skillId,
+                                                level: skill.level,
+                                                email: user.attributes.email,
+                                                }
+                                            }
+                                    });
+                        // 更新結果を画面に反映
+                        resultSkills = resultSkills.filter((myskill) => myskill.id !== skill.id);
+                        resultSkills.push(result.data.updateMySkill)
                     } else {
-                        await API.graphql({
-                            query: mutations.createMySkill,
-                            variables:{
-                                input : {
-                                    skillId: skill.skillId,
-                                    level: skill.level,
-                                    email: user.attributes.email,
-                                    }
-                                }
-                        });
+                        const result = await API.graphql({
+                                        query: mutations.createMySkill,
+                                        variables:{
+                                            input : {
+                                                skillId: skill.skillId,
+                                                level: skill.level,
+                                                email: user.attributes.email,
+                                                }
+                                            }
+                                    });
+                        // 登録結果を画面に反映
+                        resultSkills = resultSkills.filter((myskill) => myskill.id !== null);
+                        resultSkills.push(result.data.createMySkill);
                     }
                 });
+
+                const mySkillsSorted = resultSkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
+                setMySkills(mySkillsSorted);
+
                 setInfoMessage("更新完了");
 
                 // 一覧更新
-                getMySkills(user, skills);
+                //getMySkills(user, skills);
             }
         } catch (e) {
             console.log(e);
