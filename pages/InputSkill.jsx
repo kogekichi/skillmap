@@ -30,26 +30,36 @@ import { makeStyles } from "@material-ui/core/styles";
 import Amplify, { API, Auth } from "aws-amplify";
 import * as queries from "../src/graphql/queries";
 import * as mutations from "../src/graphql/mutations";
+import ConfirmDialog from "../components/commons/ConfirmDialog";
 
 /**
  * スタイルシート
  */
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles((theme) => {
+    
+    console.log(theme);
+    return {
     newSkillArea: {
         padding: theme.spacing(2),
     },
     skillListArea:{
         position:"relative"
     },
+    skillListTable: {
+        maxHeight: "60vh",
+    },
     fullWidth: {
         width: "100%",
     },
     saveButton: {
         position: 'absolute',
-        bottom: theme.spacing(2),
+        top: theme.spacing(0),
         right: theme.spacing(2),
       },
-}));
+    stickyHeader: {
+        top:"57px"      // TODO
+    }
+}});
 
 const InputSkill = () => {
     // スタイルシート
@@ -58,6 +68,7 @@ const InputSkill = () => {
     const [mySkills, setMySkills] = useState([]);
     const [skills, setSkills] = useState([]);
     const [selectedSkill, setSelectedSkill] = useState(null);
+    const [selectedMySkill, setSelectedMySkill] = useState(null);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [initMySkill, setInitMySkill] = useState([]);
@@ -65,6 +76,7 @@ const InputSkill = () => {
 
     const [errorMessage, setErrorMessage] = useState("");
     const [infoMessage, setInfoMessage] = useState("");
+    const [confirmMessage, setConfirmMessage] = useState("");
 
     // 保有スキル取得
     const getMySkills = async (curUser, skillItems) => {
@@ -216,9 +228,43 @@ const InputSkill = () => {
 
     }
 
-    // 削除処理
+    // 削除処理確認
     const handleClickDelete = async (delMySkill) => {
+        setSelectedMySkill(delMySkill);
+        setConfirmMessage("削除していい？");
+    }
+    // 削除確認いいえボタン
+    const handleClickConfirmNo = () => {
+        setConfirmMessage("");
+    }
+    // 削除確認はいボタン
+    const handleClickConfirmYes = async () => {
+        try{
+            if (selectedMySkill.id) {
+                await API.graphql({
+                    query: mutations.deleteMySkill,
+                    variables:{
+                        input : {
+                            id: selectedMySkill.id,
+                            }
+                        }
+                });
+            }
 
+            const deletedMySkills = mySkills.filter((mySkill) => mySkill.id !== selectedMySkill.id);
+            setMySkills(deletedMySkills);
+        } catch (e) {
+            console.log(e);
+            
+            if (e.message) {
+                setErrorMessage(e.message);
+            } else if (e.errors) {
+                setErrorMessage(e.errors.map(err => err.message).join("\n"));
+            }
+        }
+
+        setSelectedMySkill(null);
+        setConfirmMessage("");
     }
 
     // エラーメッセージ非表示
@@ -243,6 +289,9 @@ const InputSkill = () => {
                     {infoMessage}
                 </MuiAlert>
             </Snackbar>
+            <ConfirmDialog onClickYes={handleClickConfirmYes} onClickNo={handleClickConfirmNo}>
+                {confirmMessage}
+            </ConfirmDialog>
             <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                     <Paper className={classes.newSkillArea}>
@@ -288,82 +337,80 @@ const InputSkill = () => {
                     </Paper>
                 </Grid>
                 <Grid item xs={12}>
-                    <Paper className={classes.skillListArea}>
-                        <TableContainer component={Paper}>
-                            <Table aria-label="simple table">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell rowSpan={2}>スキル</TableCell>
-                                        <TableCell colSpan={5}>
-                                            Level
+                    <TableContainer component={Paper} className={classes.skillListTable + " " + classes.skillListArea}>
+                        <Table stickyHeader>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell rowSpan={2}>スキル</TableCell>
+                                    <TableCell colSpan={5}>
+                                        Level
+                                    </TableCell>
+                                    <TableCell rowSpan={2}></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell align="center" className={classes.stickyHeader}>1</TableCell>
+                                    <TableCell align="center" className={classes.stickyHeader}>2</TableCell>
+                                    <TableCell align="center" className={classes.stickyHeader}>3</TableCell>
+                                    <TableCell align="center" className={classes.stickyHeader}>4</TableCell>
+                                    <TableCell align="center" className={classes.stickyHeader}>5</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {mySkills.filter((mySkill) => !selectedCategory || mySkill.skill.categoryId === selectedCategory.id).map((row, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell component="th" scope="row">
+                                            {row.skill.name}
                                         </TableCell>
-                                        <TableCell rowSpan={2}></TableCell>
+                                        <TableCell align="center">
+                                            <Radio
+                                                checked={row.level === 1}
+                                                value={1}
+                                                name={`skil_${row.id}`}
+                                                onChange={(e) => handleChangeLevel(e, row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Radio
+                                                checked={row.level === 2}
+                                                value={2}
+                                                name={`skil_${row.id}`}
+                                                onChange={(e) => handleChangeLevel(e, row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Radio
+                                                checked={row.level === 3}
+                                                value={3}
+                                                name={`skil_${row.id}`}
+                                                onChange={(e) => handleChangeLevel(e, row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Radio
+                                                checked={row.level === 4}
+                                                value={4}
+                                                name={`skil_${row.id}`}
+                                                onChange={(e) => handleChangeLevel(e, row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Radio
+                                                checked={row.level === 5}
+                                                value={5}
+                                                name={`skil_${row.id}`}
+                                                onChange={(e) => handleChangeLevel(e, row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <IconButton color="secondary" onClick={()=>handleClickDelete(row)}>
+                                                <RemoveCircleOutlineIcon fontSize="large" />
+                                            </IconButton>
+                                        </TableCell>
                                     </TableRow>
-                                    <TableRow>
-                                        <TableCell align="center">1</TableCell>
-                                        <TableCell align="center">2</TableCell>
-                                        <TableCell align="center">3</TableCell>
-                                        <TableCell align="center">4</TableCell>
-                                        <TableCell align="center">5</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {mySkills.filter((mySkill) => !selectedCategory || mySkill.skill.categoryId === selectedCategory.id).map((row, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell component="th" scope="row">
-                                                {row.skill.name}
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <Radio
-                                                    checked={row.level === 1}
-                                                    value={1}
-                                                    name={`skil_${row.id}`}
-                                                    onChange={(e) => handleChangeLevel(e, row)}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <Radio
-                                                    checked={row.level === 2}
-                                                    value={2}
-                                                    name={`skil_${row.id}`}
-                                                    onChange={(e) => handleChangeLevel(e, row)}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <Radio
-                                                    checked={row.level === 3}
-                                                    value={3}
-                                                    name={`skil_${row.id}`}
-                                                    onChange={(e) => handleChangeLevel(e, row)}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <Radio
-                                                    checked={row.level === 4}
-                                                    value={4}
-                                                    name={`skil_${row.id}`}
-                                                    onChange={(e) => handleChangeLevel(e, row)}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <Radio
-                                                    checked={row.level === 5}
-                                                    value={5}
-                                                    name={`skil_${row.id}`}
-                                                    onChange={(e) => handleChangeLevel(e, row)}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="center">
-                                                <IconButton color="secondary" onClick={handleClickAddSkill}>
-                                                    <RemoveCircleOutlineIcon fontSize="large" />
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Paper>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
                 </Grid>
                 <Grid item xs={12} className={classes.skillListArea}>
                     <Fab color="primary" aria-label="add" className={classes.saveButton} onClick={handleClickSave}>

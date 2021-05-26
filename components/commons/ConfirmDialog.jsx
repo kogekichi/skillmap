@@ -1,45 +1,33 @@
-import React from 'react'
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@material-ui/core'
+import React, { memo } from 'react'
 
-const ConfirmDialog = ({children, onClickYes = ()=>{}, onClickNo = ()=>{}}) => {
-    const [open, setOpen] = React.useState(false);
-
-    const handleClickOpen = () => {
-      setOpen(true);
-    };
-  
-    const handleClose = () => {
-      setOpen(false);
-    };
+const ConfirmDialog = memo(({children, open, onClickYes = ()=>{}, onClickNo = ()=>{}}) => {
 
     return (
         <div>
-        <Button variant="outlined" color="primary" onClick={handleClickOpen}>
-          確認
-        </Button>
         <Dialog
-          open={open}
-          onClose={handleClose}
+          open={children !== null && children !== ""}
+          onClose={onClickNo}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
-          <DialogTitle id="alert-dialog-title">{"Use Google's location service?"}</DialogTitle>
+          <DialogTitle id="alert-dialog-title">確認</DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              Let Google help apps determine location. This means sending anonymous location data to
-              Google, even when no apps are running.
+              {children}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={onClickNo} color="primary">
+            <Button onClick={onClickNo} color="secondary" variant="outlined">
               いいえ
             </Button>
-            <Button onClick={onClickYes} color="primary" autoFocus>
+            <Button onClick={onClickYes} color="primary" variant="outlined" autoFocus>
               はい
             </Button>
           </DialogActions>
         </Dialog>
       </div>
     )
-}
+});
 
 export default ConfirmDialog
