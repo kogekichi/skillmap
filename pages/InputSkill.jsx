@@ -1,14 +1,14 @@
-import { Container, Grid, Snackbar } from "@material-ui/core";
-import MuiAlert from "@material-ui/lab/Alert";
-import React, { useCallback, useEffect, useState } from "react";
+import { Container, Grid } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
-import Amplify, { API, Auth } from "aws-amplify";
-import * as queries from "../src/graphql/queries";
-import * as mutations from "../src/graphql/mutations";
-import ConfirmDialog from "../components/commons/ConfirmDialog";
+import { API, Auth } from "aws-amplify";
+import React, { useCallback, useEffect, useState } from "react";
+import { useConfirm } from "../components/commons/ConfirmDialog";
+import { useMessage } from "../components/commons/Message";
+import Skill from "../components/commons/Skill";
 import Category from "../components/inputskill/Category";
-import Skill from "../components/inputskill/Skill";
 import MySkillList from "../components/inputskill/MySkillList";
+import * as mutations from "../src/graphql/mutations";
+import * as queries from "../src/graphql/queries";
 
 /**
  * スタイルシート
@@ -39,6 +39,165 @@ const useStyles = makeStyles((theme) => {
     };
 });
 
+/**
+ * 初期情報取得
+ * @returns
+ */
+const getInitInfo = async () => {
+    // ユーザ情報取得
+    const curUser = await Auth.currentAuthenticatedUser();
+
+    // カテゴリ取得
+    const resCate = await API.graphql({
+        query: queries.listSkillCategorys,
+    });
+    const categories = resCate.data.listSkillCategorys.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
+
+    // スキル一覧取得
+    const resSkillｓ = await API.graphql({
+        query: queries.listSkills,
+    });
+    const skills = resSkillｓ.data.listSkills.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
+
+    // 自分のスキル取得
+    const resMySkill = await API.graphql({
+        query: queries.listMySkills,
+        variables: { filter: { email: { eq: curUser.attributes.email } } },
+    });
+
+    const margeMySkills = resMySkill.data.listMySkills.items.map((mskill) => {
+        const targetSkill = skills.find((item) => item.id === mskill.skillId);
+        if (targetSkill) {
+            mskill.skill = targetSkill;
+        } else {
+            mskill.skill = { id: null, name: "", categoryId: null };
+        }
+        return mskill;
+    });
+    const mySkills = margeMySkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
+
+    return { categories, skills, mySkills };
+};
+
+/**
+ * スキル追加
+ * @param {*} skill
+ * @param {*} mySkills
+ * @param {*} openError
+ * @returns
+ */
+const addSkill = (skill, mySkills, openError) => {
+    // 空チェック
+    if (!skill) {
+        return;
+    }
+
+    // 重複チェック
+    const exists = mySkills.some((mySkill) => mySkill.skill.id === skill.id);
+    if (exists) {
+        openError("同じスキル有るよ");
+        return;
+    }
+
+    const newMySkill = { id: null, skillId: skill.id, skill: skill, level: 1 };
+
+    return [...mySkills, newMySkill];
+};
+
+/**
+ * 保存
+ * @param {*} updateMySkills
+ * @param {*} mySkills
+ * @returns
+ */
+const saveMySkills = async (updateMySkills, mySkills) => {
+    const curUser = await Auth.currentAuthenticatedUser();
+    // 変更のあったスキルを探す
+    const predicate = (listSkill) => {
+        return !listSkill.id || mySkills.some((s) => listSkill.id === s.id && listSkill.level !== s.level);
+    };
+
+    // 戻り値用
+    let resultMySkills = null;
+
+    // 更新
+    const targetMySkills = updateMySkills.filter(predicate);
+
+    if (targetMySkills.length > 0) {
+        // 新気分省いたリスト
+        let updatedSkills = mySkills.filter((myskill) => myskill.id !== null);
+
+        for (const updateSkill of targetMySkills) {
+            // 更新
+            if (updateSkill.id) {
+                const result = await API.graphql({
+                    query: mutations.updateMySkill,
+                    variables: {
+                        input: {
+                            id: updateSkill.id,
+                            skillId: updateSkill.skillId,
+                            level: updateSkill.level,
+                            email: curUser.attributes.email,
+                        },
+                    },
+                });
+
+                // 更新結果を画面に反映
+                updatedSkills = updatedSkills.map((myskill) => (myskill.id !== updateSkill.id ? myskill : result.data.updateMySkill));
+            } else {
+                // 追加
+                const result = await API.graphql({
+                    query: mutations.createMySkill,
+                    variables: {
+                        input: {
+                            skillId: updateSkill.skillId,
+                            level: updateSkill.level,
+                            email: curUser.attributes.email,
+                        },
+                    },
+                });
+
+                // 登録結果を画面に反映
+                updatedSkills.push(result.data.createMySkill);
+            }
+        }
+
+        // 再表示用にソート
+        resultMySkills = updatedSkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
+    }
+
+    return resultMySkills;
+};
+
+/**
+ * 削除
+ * @param {*} selectedMySkill
+ * @param {*} mySkills
+ * @returns
+ */
+const deleteMySkill = async (selectedMySkill, mySkills) => {
+    // IDがある場合はDBから消す
+    if (selectedMySkill.id) {
+        await API.graphql({
+            query: mutations.deleteMySkill,
+            variables: {
+                input: {
+                    id: selectedMySkill.id,
+                },
+            },
+        });
+    }
+
+    // 画面上から消す
+    const resultMySkills = mySkills.filter((mySkill) => mySkill.id !== selectedMySkill.id);
+
+    return resultMySkills;
+};
+
+/**
+ * スキル入力ページ
+ * @returns
+ */
 const InputSkill = () => {
     // スタイルシート
     const classes = useStyles();
@@ -48,57 +207,16 @@ const InputSkill = () => {
     const [selectedMySkill, setSelectedMySkill] = useState(null);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [user, setUser] = useState({});
 
-    const [errorMessage, setErrorMessage] = useState("");
-    const [infoMessage, setInfoMessage] = useState("");
-    const [confirmMessage, setConfirmMessage] = useState("");
-
-    // 保有スキル取得
-    const getMySkills = async (curUser, skillItems) => {
-        const resMySkill = await API.graphql({
-            query: queries.listMySkills,
-            variables: { filter: { email: { eq: curUser.attributes.email } } },
-        });
-
-        const margeMySkills = resMySkill.data.listMySkills.items.map((mskill) => {
-            const targetSkill = skillItems.find((item) => item.id === mskill.skillId);
-            if (targetSkill) {
-                mskill.skill = targetSkill;
-            } else {
-                mskill.skill = { id: null, name: "", categoryId: null };
-            }
-            return mskill;
-        });
-
-        const mySkillsSorted = margeMySkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
-
-        setMySkills([...mySkillsSorted]);
-    };
+    const { openError, openInfo, Message } = useMessage();
+    const { openDialog, ConfirmDialog } = useConfirm();
 
     // 初期検索
     useEffect(async () => {
-        // ユーザ情報取得
-        const curUser = await Auth.currentAuthenticatedUser();
-        setUser(curUser);
-        console.log(curUser.attributes.email);
-
-        // カテゴリ取得
-        const resCate = await API.graphql({
-            query: queries.listSkillCategorys,
-        });
-        const cate = resCate.data.listSkillCategorys.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
-        setCategories(cate);
-
-        // スキル一覧取得
-        const resSkillｓ = await API.graphql({
-            query: queries.listSkills,
-        });
-        const skillItems = resSkillｓ.data.listSkills.items.sort((c1, c2) => c1.name.localeCompare(c2.name));
-        setSkills(skillItems);
-
-        // 自分のスキル取得
-        getMySkills(curUser, skillItems);
+        const { categories, skills, mySkills } = await getInitInfo();
+        setSkills(skills);
+        setCategories(categories);
+        setMySkills(mySkills);
     }, []);
 
     // カテゴリ変更
@@ -109,20 +227,10 @@ const InputSkill = () => {
     // 新スキル追加
     const handleClickAddSkill = useCallback(
         (e, skill) => {
-            // 空チェック
-            if (!skill) {
-                return;
+            const newMySkills = addSkill(skill, mySkills, openError);
+            if (newMySkills) {
+                setMySkills(newMySkills);
             }
-
-            // 重複チェック
-            const exists = mySkills.some((mySkill) => mySkill.skill.id === skill.id);
-            if (exists) {
-                setErrorMessage("同じスキル有るよ");
-                return;
-            }
-
-            const newMySkill = { id: null, skillId: skill.id, skill: skill, level: 1 };
-            setMySkills([...mySkills, newMySkill]);
         },
         [mySkills]
     );
@@ -130,63 +238,15 @@ const InputSkill = () => {
     // 保存
     const handleClickSave = useCallback(
         async (e, updateMySkill) => {
-            console.log("save");
-            console.log(mySkills);
-
-            // 変更のあったスキルを探す
-            const predicate = (listSkill) => {
-                return !listSkill.id || mySkills.some((s) => listSkill.id === s.id && listSkill.level !== s.level);
-            };
-
-            // 更新
             try {
-                const targetMySkills = updateMySkill.filter(predicate);
-
-                if (targetMySkills.length > 0) {
-                    // 新気分省いたリスト
-                    let resultSkills = mySkills.filter((myskill) => myskill.id !== null);
-
-                    for (const updateSkill of targetMySkills) {
-                        if (updateSkill.id) {
-                            const result = await API.graphql({
-                                query: mutations.updateMySkill,
-                                variables: {
-                                    input: {
-                                        id: updateSkill.id,
-                                        skillId: updateSkill.skillId,
-                                        level: updateSkill.level,
-                                        email: user.attributes.email,
-                                    },
-                                },
-                            });
-
-                            // 更新結果を画面に反映
-                            resultSkills = resultSkills.map((myskill) => (myskill.id !== updateSkill.id ? myskill : result.data.updateMySkill));
-                        } else {
-                            const result = await API.graphql({
-                                query: mutations.createMySkill,
-                                variables: {
-                                    input: {
-                                        skillId: updateSkill.skillId,
-                                        level: updateSkill.level,
-                                        email: user.attributes.email,
-                                    },
-                                },
-                            });
-
-                            // 登録結果を画面に反映
-                            resultSkills.push(result.data.createMySkill);
-                        }
-                    }
-
-                    const mySkillsSorted = resultSkills.sort((c1, c2) => c1.skill.name.localeCompare(c2.skill.name));
-                    setMySkills(mySkillsSorted);
-
-                    setInfoMessage("更新完了");
+                const resultMySkills = await saveMySkills(updateMySkill, mySkills);
+                if (resultMySkills) {
+                    setMySkills(resultMySkills);
                 }
+                openInfo("更新完了");
             } catch (e) {
                 console.log(e);
-                setErrorMessage(e.message);
+                openError(e.message);
             }
         },
         [mySkills]
@@ -195,31 +255,14 @@ const InputSkill = () => {
     // 削除処理確認
     const handleClickDelete = useCallback(async (e, delMySkill) => {
         setSelectedMySkill(delMySkill);
-        setConfirmMessage("削除していい？");
+        openDialog("削除していい？");
     }, []);
-    // 削除確認いいえボタン
-    const handleClickConfirmNo = useCallback(() => {
-        setConfirmMessage("");
-    }, []);
+
     // 削除確認はいボタン
     const handleClickConfirmYes = useCallback(async () => {
         try {
-            console.log(selectedMySkill);
-            if (selectedMySkill.id) {
-                console.log("1");
-                await API.graphql({
-                    query: mutations.deleteMySkill,
-                    variables: {
-                        input: {
-                            id: selectedMySkill.id,
-                        },
-                    },
-                });
-            }
-            console.log("2");
-
-            const deletedMySkills = mySkills.filter((mySkill) => mySkill.id !== selectedMySkill.id);
-            setMySkills(deletedMySkills);
+            const resultMySkills = await deleteMySkill(selectedMySkill, mySkills);
+            setMySkills(resultMySkills);
         } catch (e) {
             console.log(e);
 
@@ -229,46 +272,13 @@ const InputSkill = () => {
                 setErrorMessage(e.errors.map((err) => err.message).join("\n"));
             }
         }
-
         setSelectedMySkill(null);
-        setConfirmMessage("");
     }, [selectedMySkill, mySkills]);
-
-    // エラーメッセージ非表示
-    const handleErrorClose = useCallback(() => {
-        setErrorMessage("");
-    }, []);
-
-    // 情報メッセージ非表示
-    const handleInfoClose = useCallback(() => {
-        setInfoMessage("");
-    }, []);
 
     return (
         <Container maxWidth="md">
-            <Snackbar
-                open={errorMessage !== ""}
-                autoHideDuration={6000}
-                onClose={handleErrorClose}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            >
-                <MuiAlert onClose={handleErrorClose} severity="error" elevation={6} variant="filled">
-                    {errorMessage}
-                </MuiAlert>
-            </Snackbar>
-            <Snackbar
-                open={infoMessage !== ""}
-                autoHideDuration={6000}
-                onClose={handleInfoClose}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            >
-                <MuiAlert onClose={handleInfoClose} severity="success" elevation={6} variant="filled">
-                    {infoMessage}
-                </MuiAlert>
-            </Snackbar>
-            <ConfirmDialog onClickYes={handleClickConfirmYes} onClickNo={handleClickConfirmNo}>
-                {confirmMessage}
-            </ConfirmDialog>
+            <Message />
+            <ConfirmDialog onClickYes={handleClickConfirmYes} />
             <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                     <Category categories={categories} onChangeCategory={handleChangeCategory} />
